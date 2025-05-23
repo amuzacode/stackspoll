@@ -5,6 +5,8 @@ authors = []
 telemetry = true
 cache_dir = '.\.cache'
 requirements = []
+[contracts.carbon-credit-verification]
+path = 'contracts/carbon-credit-verification.clar'
 [contracts.carbon-credit-marketplace]
 path = 'contracts/carbon-credit-marketplace.clar'
 clarity_version = 2
