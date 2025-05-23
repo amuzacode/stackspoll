@@ -7,6 +7,8 @@ cache_dir = '.\.cache'
 requirements = []
 [contracts.carbon-credit-retirement]
 path = 'contracts/carbon-credit-retirement.clar'
+[contracts.carbon-marketplace]
+path = 'contracts/carbon-marketplace.clar'
 clarity_version = 3
 epoch = 3.0
 [repl.analysis]
