@@ -24,6 +24,11 @@ epoch = 2.05
 path = 'contracts/carbon-retirement.clar'
 clarity_version = 3
 epoch = 3.0
+
+[contracts.revenue-sharing]
+path = 'contracts/revenue-sharing.clar'
+clarity_version = 3
+epoch = 3.0
 [repl.analysis]
 passes = ['check_checker']
 
