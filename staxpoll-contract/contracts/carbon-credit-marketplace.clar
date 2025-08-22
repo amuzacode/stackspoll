@@ -76,7 +76,7 @@
     (asserts! (>= price-per-token min-price) err-invalid-price)
     (asserts! (>= (contract-call? .carbon-credit-token get-balance tx-sender) token-amount) err-insufficient-balance)
     
-    (try! (contract-call? .carbon-credit-token transfer token-amount tx-sender (as-contract tx-sender)))
+    (try! (contract-call? .carbon-credit-token transfer token-amount tx-sender (as-contract tx-sender) (some 0x7472616e73666572)))
     
     (map-set listings 
       listing-id
@@ -140,6 +140,7 @@
       (get token-amount listing) 
       tx-sender 
       (get buyer escrow-info)
+      (some 0x7472616e73666572)
     )))
     
     ;; Transfer payment to seller
