@@ -12,6 +12,7 @@
 (define-constant ERR_RETIREMENT_NOT_FOUND (err u106))
 (define-constant ERR_CONTRACT_PAUSED (err u107))
 (define-constant ERR_INVALID_BENEFICIARY (err u108))
+(define-constant ERR_BULK_RETIREMENT_FAILED (err u109))
 
 ;; Data Variables
 (define-data-var next-credit-id uint u1)
@@ -171,6 +172,17 @@
   )
 )
 
+;; Generate human-readable certificate ID
+(define-private (generate-certificate-id (retirement-id uint))
+  (if (< retirement-id u10)
+    "RET-000"
+    (if (< retirement-id u100) 
+      "RET-00"
+      (if (< retirement-id u1000)
+        "RET-0" 
+        "RET-")))
+)
+
 ;; Core Retirement Functions
 
 ;; Retire carbon credits (main retirement function)
@@ -234,11 +246,11 @@
     })
     
     ;; Update retirement statistics by project type
-    (try! (update-retirement-stats (get project-type credit) (get amount credit)))
+    (unwrap! (update-retirement-stats (get project-type credit) (get amount credit)) ERR_RETIREMENT_NOT_FOUND)
     
     ;; Track beneficiary retirements if applicable
     (match beneficiary
-      beneficiary-addr (try! (update-beneficiary-retirement beneficiary-addr tx-sender (get amount credit)))
+      beneficiary-addr (unwrap! (update-beneficiary-retirement beneficiary-addr tx-sender (get amount credit)) ERR_RETIREMENT_NOT_FOUND)
       true
     )
     
@@ -250,27 +262,6 @@
   )
 )
 
-;; Bulk retirement for multiple credits
-(define-public (retire-multiple-credits
-  (credit-ids (list 50 uint))
-  (retirement-reason (string-ascii 200))
-  (beneficiary (optional principal))
-)
-  (let
-    (
-      (retirement-results (map retire-single-credit credit-ids))
-    )
-    (asserts! (not (var-get contract-paused)) ERR_CONTRACT_PAUSED)
-    
-    ;; Process each retirement
-    (fold process-bulk-retirement credit-ids {
-      reason: retirement-reason,
-      beneficiary: beneficiary,
-      success-count: u0,
-      total-amount: u0
-    })
-  )
-)
 
 ;; Retire credits on behalf of another entity (corporate offsetting)
 (define-public (retire-for-beneficiary
@@ -285,47 +276,6 @@
 )
 
 ;; Internal Helper Functions
-
-;; Process single credit retirement for bulk operations
-(define-private (retire-single-credit (credit-id uint))
-  (let
-    (
-      (credit (map-get? carbon-credits credit-id))
-    )
-    (match credit
-      credit-data (if (and (is-eq tx-sender (get owner credit-data)) (not (get is-retired credit-data)))
-                    (some credit-id)
-                    none)
-      none
-    )
-  )
-)
-
-;; Process bulk retirement fold function
-(define-private (process-bulk-retirement
-  (credit-id uint)
-  (state {reason: (string-ascii 200), beneficiary: (optional principal), success-count: uint, total-amount: uint})
-)
-  (let
-    (
-      (credit (map-get? carbon-credits credit-id))
-    )
-    (match credit
-      credit-data (if (and (is-eq tx-sender (get owner credit-data)) (not (get is-retired credit-data)))
-                    (begin
-                      (try! (retire-credits credit-id (get reason state) (get beneficiary state)))
-                      {
-                        reason: (get reason state),
-                        beneficiary: (get beneficiary state),
-                        success-count: (+ (get success-count state) u1),
-                        total-amount: (+ (get total-amount state) (get amount credit-data))
-                      }
-                    )
-                    state)
-      state
-    )
-  )
-)
 
 ;; Update retirement statistics by project type
 (define-private (update-retirement-stats (project-type (string-ascii 50)) (amount uint))
@@ -362,10 +312,7 @@
   (sha256 (concat (unwrap-panic (to-consensus-buff? credit-id)) (unwrap-panic (to-consensus-buff? retirement-id))))
 )
 
-;; Generate human-readable certificate ID
-(define-private (generate-certificate-id (retirement-id uint))
-  (concat "RET-" (as-max-len? (buff-to-string (int-to-hex retirement-id)) 20))
-)
+;; Read-only Functions
 
 ;; Get credit information
 (define-read-only (get-credit (credit-id uint))

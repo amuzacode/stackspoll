@@ -1,4 +1,3 @@
-
 ;; title: carbon-credit-verification
 ;; version:
 ;; summary:
